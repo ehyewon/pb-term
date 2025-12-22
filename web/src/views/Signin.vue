@@ -1,19 +1,12 @@
 <template>
   <div class="auth-wrapper">
     <div class="card-stack">
+
+      <hr style="margin:16px 0;opacity:0.3" />
+
+      <!-- 🔥 카드만 transition -->
       <transition name="card-slide" mode="out-in">
         <!-- 로그인 카드 -->
-
-        <button
-          class="main-btn"
-          style="background:#fff;color:#000"
-          @click="handleGoogleLogin"
-        >
-          Google로 로그인
-        </button>
-
-<hr style="margin:16px 0;opacity:0.3" />
-
         <div v-if="!showSignup" key="login" class="auth-card login-card">
           <h2>로그인</h2>
 
@@ -31,6 +24,15 @@
             계정이 없으신가요?
             <span @click="toggle">회원가입</span>
           </p>
+
+          <!-- 소셜 로그인 영역 -->
+          <div class="social-login">
+            <!-- Google 아이콘 버튼 -->
+            <div class="google-icon-btn" @click="handleGoogleLogin">
+              <img src="/google-icon.png" alt="Google 로그인" />
+            </div>
+             <div class="social-label">구글 계정으로 간편 로그인하기</div>
+          </div>
         </div>
 
         <!-- 회원가입 카드 -->
@@ -63,16 +65,15 @@
 </template>
 
 <script setup>
-/* TMDB API Key 형식 검사 */
-const isValidApiKey = (key) =>
-  /^[a-f0-9]{32}$/.test(key);
-  
 import { ref, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import { useToast } from "@/composables/useToast.js";
-import { useAuth, loginWithGoogle } from "@/composables/useAuth.js";
+import { useToast } from "@/composables/useToast";
+import { useAuth, loginWithGoogle } from "@/composables/useAuth";
 
+/* ===============================
+   기본 설정
+================================ */
 const router = useRouter();
 const { showToast } = useToast();
 const { login } = useAuth();
@@ -92,111 +93,95 @@ const signPw = ref("");
 const signPw2 = ref("");
 const agree = ref(false);
 
-/* 이메일 검사 */
+/* ===============================
+   유틸
+================================ */
 const isValidEmail = (email) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+const isValidApiKey = (key) =>
+  /^[a-f0-9]{32}$/.test(key);
+
 /* ===============================
-   🔥 자동 로그인 + 아이디 채우기
+   자동 로그인
 ================================ */
 onMounted(() => {
   const savedId = localStorage.getItem("savedId");
   const autoLogin = localStorage.getItem("autoLogin");
-  const accounts = JSON.parse(localStorage.getItem("accounts") || "{}");
 
-  // 아이디 저장되어 있으면 input 채움
   if (savedId) {
     loginId.value = savedId;
     saveId.value = true;
   }
 
-  // 자동 로그인
-  if (savedId && autoLogin === "true" && accounts[savedId]) {
+  if (savedId && autoLogin === "true") {
     login(savedId);
     router.push("/");
   }
 });
 
 /* ===============================
-   🔥 아이디 저장 즉시 반영
+   아이디 저장
 ================================ */
 watch(saveId, (checked) => {
-  const savedId = localStorage.getItem("savedId");
-
-  if (checked) {
-    // 체크했을 때 → 현재 입력된 아이디 저장
-    if (loginId.value) {
-      localStorage.setItem("savedId", loginId.value);
-    }
+  if (checked && loginId.value) {
+    localStorage.setItem("savedId", loginId.value);
   } else {
-    // ❗중요: 지금 입력된 아이디가 savedId일 때만 삭제
-    if (savedId === loginId.value) {
-      localStorage.removeItem("savedId");
-      localStorage.removeItem("autoLogin");
-    }
+    localStorage.removeItem("savedId");
+    localStorage.removeItem("autoLogin");
   }
 });
 
-
-/* 카드 전환 */
+/* ===============================
+   카드 전환
+================================ */
 const toggle = () => {
   successMsg.value = "";
   showSignup.value = !showSignup.value;
 };
 
 /* ===============================
-   회원가입 (TMDB API Key 검증용)
+   회원가입
 ================================ */
 async function handleSignup() {
-  // 1️⃣ 필수 입력 검사
   if (!signId.value || !signPw.value || !signPw2.value) {
     showToast("모든 항목을 입력해주세요.");
     return;
   }
 
-  // 2️⃣ 이메일 형식 검사
   if (!isValidEmail(signId.value)) {
     showToast("이메일 형식이 올바르지 않습니다.");
     return;
   }
 
-  // 3️⃣ TMDB API Key 형식 검사 (32자리 hex)
   if (!isValidApiKey(signPw.value)) {
     showToast("비밀번호에는 TMDB API Key를 입력해주세요.");
     return;
   }
 
-
-  // 4️⃣ API Key 확인 일치 검사
   if (signPw.value !== signPw2.value) {
     showToast("API Key가 서로 일치하지 않습니다.");
     return;
   }
 
-  // 5️⃣ 약관 동의 확인
   if (!agree.value) {
-    showToast("필수 약관에 동의해야 합니다.");
+    showToast("약관에 동의해야 합니다.");
     return;
   }
 
-  // 6️⃣ TMDB API Key 실제 유효성 검증
   try {
     await axios.get("https://api.themoviedb.org/3/movie/popular", {
-      params: {
-        api_key: signPw.value, // ⭐ 입력한 API Key로 검증
-      },
+      params: { api_key: signPw.value },
     });
   } catch {
     showToast("유효하지 않은 TMDB API Key입니다.");
     return;
   }
 
-  // ✅ 회원가입 성공 (과제용: 실제 계정 생성 ❌)
-  successMsg.value = "🎉 회원가입 완료! (TMDB API Key 확인됨)";
-
+  successMsg.value = "🎉 회원가입 완료!";
   setTimeout(() => {
     successMsg.value = "";
-    showSignup.value = false; // 로그인 화면으로 전환
+    showSignup.value = false;
   }, 1200);
 }
 
@@ -205,7 +190,7 @@ async function handleSignup() {
 ================================ */
 async function handleLogin() {
   if (!loginId.value || !loginPw.value) {
-    showToast("이메일과 TMDB API Key를 입력해주세요.");
+    showToast("이메일과 API Key를 입력해주세요.");
     return;
   }
 
@@ -215,18 +200,13 @@ async function handleLogin() {
   }
 
   try {
-    // 🔥 TMDB API Key로 실제 인증 요청
     await axios.get("https://api.themoviedb.org/3/movie/popular", {
-      params: {
-        api_key: loginPw.value, // ⭐ API Key를 query로
-      },
+      params: { api_key: loginPw.value },
     });
-    // ✅ 여기까지 왔다는 건 인증 성공
+
     login(loginId.value);
 
-    // 자동 로그인 처리
     if (saveId.value) {
-      localStorage.setItem("savedId", loginId.value);
       localStorage.setItem("autoLogin", "true");
     }
 
@@ -235,17 +215,17 @@ async function handleLogin() {
       successMsg.value = "";
       router.push("/");
     }, 500);
-
-  } catch (err) {
+  } catch {
     showToast("TMDB API Key가 올바르지 않습니다.");
   }
 }
 
+/* ===============================
+   Google 로그인
+================================ */
 async function handleGoogleLogin() {
   try {
     const user = await loginWithGoogle();
-
-    // 🔥 Firebase 로그인 성공 → 앱 로그인 상태 동기화
     login(user.email);
 
     successMsg.value = "🎉 Google 로그인 성공!";
@@ -253,7 +233,7 @@ async function handleGoogleLogin() {
       successMsg.value = "";
       router.push("/");
     }, 500);
-  } catch (e) {
+  } catch {
     showToast("Google 로그인에 실패했습니다.");
   }
 }
@@ -345,4 +325,49 @@ input {
   font-weight: bold;
   color: white;
 }
+
+/* ===============================
+   소셜 로그인 영역
+================================ */
+.social-login {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.social-label {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.google-icon-btn {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.google-icon-btn img {
+  width: 28px;
+  height: 28px;
+}
+
+.google-icon-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+.google-icon-btn:active {
+  transform: scale(0.95);
+}
+
 </style>
