@@ -3,6 +3,17 @@
     <div class="card-stack">
       <transition name="card-slide" mode="out-in">
         <!-- 로그인 카드 -->
+
+        <button
+          class="main-btn"
+          style="background:#fff;color:#000"
+          @click="handleGoogleLogin"
+        >
+          Google로 로그인
+        </button>
+
+<hr style="margin:16px 0;opacity:0.3" />
+
         <div v-if="!showSignup" key="login" class="auth-card login-card">
           <h2>로그인</h2>
 
@@ -60,7 +71,7 @@ import { ref, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { useToast } from "@/composables/useToast.js";
-import { useAuth } from "@/composables/useAuth.js";
+import { useAuth, loginWithGoogle } from "@/composables/useAuth.js";
 
 const router = useRouter();
 const { showToast } = useToast();
@@ -150,11 +161,11 @@ async function handleSignup() {
   }
 
   // 3️⃣ TMDB API Key 형식 검사 (32자리 hex)
-  const apiKeyPattern = /^[a-f0-9]{32}$/;
-  if (!apiKeyPattern.test(signPw.value)) {
+  if (!isValidApiKey(signPw.value)) {
     showToast("비밀번호에는 TMDB API Key를 입력해주세요.");
     return;
   }
+
 
   // 4️⃣ API Key 확인 일치 검사
   if (signPw.value !== signPw2.value) {
@@ -227,6 +238,23 @@ async function handleLogin() {
 
   } catch (err) {
     showToast("TMDB API Key가 올바르지 않습니다.");
+  }
+}
+
+async function handleGoogleLogin() {
+  try {
+    const user = await loginWithGoogle();
+
+    // 🔥 Firebase 로그인 성공 → 앱 로그인 상태 동기화
+    login(user.email);
+
+    successMsg.value = "🎉 Google 로그인 성공!";
+    setTimeout(() => {
+      successMsg.value = "";
+      router.push("/");
+    }, 500);
+  } catch (e) {
+    showToast("Google 로그인에 실패했습니다.");
   }
 }
 
