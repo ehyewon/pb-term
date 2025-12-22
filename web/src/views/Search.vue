@@ -74,13 +74,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
 import MovieCard from "@/components/MovieCard.vue";
 import { useAuth } from "@/composables/useAuth.js";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/firebase";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { query, where, orderBy, limit, getDocs } from "firebase/firestore";
 
 /* ================= 상태 ================= */
 const keyword = ref("");
@@ -95,14 +96,26 @@ const page = ref(1);
 const loading = ref(false);
 const isSearchMode = ref(false);
 const showTop = ref(false);
+
 const firebaseAuth = getAuth();
 
 /* ================= 최근 검색 ================= */
 const { auth } = useAuth();
+
 const recentKey = computed(() =>
   auth.email ? `recentKeywords_${auth.email}` : null
 );
+
 const recentKeywords = ref([]);
+
+/* 🔥 핵심: 로그인 후 recentKey 생기면 즉시 복구 */
+watch(recentKey, (key) => {
+  if (!key) return;
+
+  const saved =
+    JSON.parse(localStorage.getItem(key) || "[]");
+  recentKeywords.value = saved;
+});
 
 /* ================= 장르 ================= */
 const genres = ref([
@@ -117,18 +130,13 @@ const genres = ref([
 /* ================= 최초 로드 ================= */
 onMounted(async () => {
   await loadDiscover();
-
-  if (recentKey.value) {
-    recentKeywords.value = JSON.parse(
-      localStorage.getItem(recentKey.value) || "[]"
-    );
-  }
-
   window.addEventListener("scroll", handleScroll);
-});
 
-onUnmounted(() => {
-  window.removeEventListener("scroll", handleScroll);
+  // 🔥 로그인되면 Firestore와 동기화
+  onAuthStateChanged(firebaseAuth, async (user) => {
+    if (!user) return;
+    await loadRecentFromFirestore();
+  });
 });
 
 /* ================= DISCOVER ================= */
@@ -156,6 +164,35 @@ async function loadDiscover() {
   loading.value = false;
 }
 
+/* ================= Firestore 최근 검색 복구 ================= */
+async function loadRecentFromFirestore() {
+  const user = firebaseAuth.currentUser;
+  if (!user) return;
+
+  const q = query(
+    collection(db, "searchHistory"),
+    where("userUid", "==", user.uid),
+    orderBy("createdAt", "desc"),
+    limit(5)
+  );
+
+  const snapshot = await getDocs(q);
+  const words = [];
+
+  snapshot.forEach(doc => {
+    words.push(doc.data().keyword);
+  });
+
+  if (recentKey.value) {
+    localStorage.setItem(
+      recentKey.value,
+      JSON.stringify(words)
+    );
+  }
+
+  recentKeywords.value = words;
+}
+
 /* ================= SEARCH ================= */
 async function loadSearch() {
   if (loading.value) return;
@@ -181,7 +218,7 @@ async function loadSearch() {
   loading.value = false;
 }
 
-/* ================= ❌ 실시간 저장 제거 ================= */
+/* ================= 검색어 입력 watch ================= */
 watch(keyword, async (val) => {
   page.value = 1;
   movies.value = [];
@@ -197,7 +234,7 @@ watch(keyword, async (val) => {
   await loadSearch();
 });
 
-/* ================= 🔥 검색 버튼 / 엔터 ================= */
+/* ================= 검색 버튼 ================= */
 async function searchMovies() {
   if (!keyword.value.trim()) return;
 
@@ -210,40 +247,38 @@ async function searchMovies() {
   await loadSearch();
 }
 
-
-/* ================= 최근 검색 ================= */
+/* ================= 최근 검색 저장 ================= */
 function saveRecent(word) {
   if (!recentKey.value) return;
 
-  let list = JSON.parse(localStorage.getItem(recentKey.value) || "[]");
+  let list =
+    JSON.parse(localStorage.getItem(recentKey.value) || "[]");
+
   list = list.filter(v => v !== word);
   list.unshift(word);
   if (list.length > 5) list.pop();
 
-  localStorage.setItem(recentKey.value, JSON.stringify(list));
+  localStorage.setItem(
+    recentKey.value,
+    JSON.stringify(list)
+  );
+
   recentKeywords.value = list;
 }
 
-/* ================= 🔥 Firestore 검색어 저장 ================= */
+/* ================= Firestore 검색어 저장 ================= */
 async function saveSearchToFirestore(word) {
   const user = firebaseAuth.currentUser;
-
-  console.log("🔥 search save", user);
-
   if (!user) return;
 
-  try {
-    await addDoc(collection(db, "searchHistory"), {
-      keyword: word,
-      userUid: user.uid,
-      createdAt: serverTimestamp(),
-    });
-    console.log("✅ Firestore 저장 성공");
-  } catch (e) {
-    console.error("❌ Firestore 저장 실패", e);
-  }
+  await addDoc(collection(db, "searchHistory"), {
+    keyword: word,
+    userUid: user.uid,
+    createdAt: serverTimestamp(),
+  });
 }
 
+/* ================= 최근 검색 클릭 ================= */
 async function clickRecent(word) {
   keyword.value = word;
 
@@ -310,7 +345,6 @@ function goTop() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 </script>
-
 
 <style scoped>
 .search-page {
