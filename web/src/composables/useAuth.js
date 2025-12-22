@@ -59,6 +59,10 @@ export function useAuth() {
         authState.email = "";
         authState.currentUser = null;
     }
+    // 🔥 Web 자동 로그인 차단 (핵심)
+    localStorage.removeItem("isLogin");
+    localStorage.removeItem("loginEmail");
+    localStorage.removeItem("user");
 
     return {
         auth: authState,
