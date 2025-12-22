@@ -1,0 +1,114 @@
+@import './base.css';
+
+/* =========================
+   🌍 기본 레이아웃
+========================= */
+html {
+  font-size: 16px;
+  /* 기준 폰트 */
+}
+
+body {
+  margin: 0;
+  background: #141414;
+  color: white;
+  -webkit-text-size-adjust: 100%;
+  /* iOS 폰트 확대 방지 */
+  touch-action: manipulation;
+  /* 터치 반응 개선 */
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+
+/* 링크 */
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.3s;
+  padding: 3px;
+}
+
+/* =========================
+   🖱 Hover 가능한 기기만
+========================= */
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+/* =================================================
+   📱 모바일 (기본값) — 0 ~ 767px
+================================================= */
+@media (max-width: 767px) {
+  html {
+    font-size: 14px;
+    /* 모바일 폰트 축소 */
+  }
+
+  #app {
+    padding: 0.5rem;
+    max-width: 100%;
+  }
+}
+
+/* =================================================
+   📱📱 태블릿 (세로/가로) — 768px ~ 1023px
+================================================= */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html {
+    font-size: 15px;
+  }
+
+  #app {
+    padding: 1.5rem;
+    max-width: 100%;
+  }
+}
+
+/* =================================================
+   💻 데스크탑 — 1024px 이상
+================================================= */
+@media (min-width: 1024px) {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  #app {
+    display: block;
+    /* 기존 grid 제거 (디자인 깨짐 방지) */
+    padding: 2rem;
+  }
+}
+
+/* =================================================
+   🔄 화면 회전 대응 (가로 모드 모바일)
+================================================= */
+@media (orientation: landscape) and (max-width: 1023px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* =================================================
+   🖐 터치 UX 개선
+================================================= */
+button,
+a,
+input,
+select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
