@@ -76,7 +76,7 @@ import { useAuth, loginWithGoogle } from "@/composables/useAuth";
 ================================ */
 const router = useRouter();
 const { showToast } = useToast();
-const { login } = useAuth();
+const { auth } = useAuth();
 
 /* ===============================
    상태
@@ -115,9 +115,9 @@ onMounted(() => {
   }
 
   if (savedId && autoLogin === "true") {
-    login(savedId);
     router.push("/");
   }
+
 });
 
 /* ===============================
@@ -225,8 +225,7 @@ async function handleLogin() {
 ================================ */
 async function handleGoogleLogin() {
   try {
-    const user = await loginWithGoogle();
-    login(user.email);
+    await loginWithGoogle();   // 🔥 이 한 줄이면 끝
 
     successMsg.value = "🎉 Google 로그인 성공!";
     setTimeout(() => {
@@ -237,6 +236,7 @@ async function handleGoogleLogin() {
     showToast("Google 로그인에 실패했습니다.");
   }
 }
+
 
 </script>
 

@@ -1,48 +1,77 @@
 // src/composables/useAuth.js
 import { reactive } from "vue";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { auth as firebaseAuth } from "@/firebase";
+import {
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged,
+} from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth as firebaseAuth, db } from "@/firebase";
 
 /* ===============================
    Vue 앱 로그인 상태
 ================================ */
 const authState = reactive({
-    isLogin: localStorage.getItem("isLogin") === "true",
-    email: localStorage.getItem("loginEmail") || "",
+    isLogin: false,
+    email: "",
+    currentUser: null, // 🔥 추가
 });
 
-export function useAuth() {
-    function login(email) {
-        authState.isLogin = true;
-        authState.email = email;
-
-        localStorage.setItem("isLogin", "true");
-        localStorage.setItem("loginEmail", email);
+/* ===============================
+   Firebase Auth 상태 감시 (🔥 핵심)
+================================ */
+onAuthStateChanged(firebaseAuth, async (user) => {
+    if (!user) {
+        authState.isLogin = false;
+        authState.email = "";
+        authState.currentUser = null;
+        return;
     }
 
+    // ✅ Vue 상태 갱신
+    authState.isLogin = true;
+    authState.email = user.email;
+    authState.currentUser = user;
+
+    // ✅ Firestore users 저장 / 갱신
+    await setDoc(
+        doc(db, "users", user.uid),
+        {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            photoUrl: user.photoURL,
+            provider: "google",
+            lastLoginAt: serverTimestamp(),   // 🔥 매 로그인 갱신
+            createdAt: serverTimestamp(),     // 최초 로그인
+        },
+        { merge: true } // ⭐ 없으면 생성, 있으면 업데이트
+    );
+});
+
+/* ===============================
+   composable export
+================================ */
+export function useAuth() {
     function logout() {
         authState.isLogin = false;
         authState.email = "";
-
-        localStorage.removeItem("isLogin");
-        localStorage.removeItem("loginEmail");
-        localStorage.removeItem("autoLogin");
+        authState.currentUser = null;
     }
 
     return {
         auth: authState,
-        login,
         logout,
     };
 }
 
 /* ===============================
-   Firebase Google 로그인
+   Google 로그인 / 로그아웃
 ================================ */
 export async function loginWithGoogle() {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(firebaseAuth, provider);
-    return result.user;
+    await signInWithPopup(firebaseAuth, provider);
 }
 
 export async function logoutFromGoogle() {
