@@ -10,9 +10,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
-
-  // ⭐ GitHub Pages 배포용 base 경로
-  // 레포지토리 이름으로 꼭 바꿔야 함
+  // 🔴 JCloud 배포용 (루트 배포면 '/' 유지)
   base: '/',
 
   resolve: {
