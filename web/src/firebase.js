@@ -4,9 +4,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "팀원이 준 값",
-    authDomain: "팀원이 준 값",
-    projectId: "팀원이 준 값",
+    apiKey: "AIzaSyD94xSJv6zLsUl4sAbUN-8_mAaelFQg0N0",
+    authDomain: "pb-term.firebaseapp.com",
+    projectId: "pb-term",
+    storageBucket: "pb-term.firebasestorage.app",
+    messagingSenderId: "1026820405914",
+    appId: "1:1026820405914:web:beb7f2505d60e1d3a13d23",
+    measurementId: "G-9E630WXLH5"
 };
 
 const app = initializeApp(firebaseConfig);

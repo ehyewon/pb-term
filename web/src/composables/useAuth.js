@@ -1,45 +1,50 @@
 // src/composables/useAuth.js
 import { reactive } from "vue";
+import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { auth as firebaseAuth } from "@/firebase";
 
-const auth = reactive({
+/* ===============================
+   Vue 앱 로그인 상태
+================================ */
+const authState = reactive({
     isLogin: localStorage.getItem("isLogin") === "true",
     email: localStorage.getItem("loginEmail") || "",
 });
 
 export function useAuth() {
     function login(email) {
-        auth.isLogin = true;
-        auth.email = email;
+        authState.isLogin = true;
+        authState.email = email;
 
         localStorage.setItem("isLogin", "true");
         localStorage.setItem("loginEmail", email);
     }
 
     function logout() {
-        auth.isLogin = false;
-        auth.email = "";
+        authState.isLogin = false;
+        authState.email = "";
 
         localStorage.removeItem("isLogin");
         localStorage.removeItem("loginEmail");
         localStorage.removeItem("autoLogin");
     }
 
-    return { auth, login, logout };
+    return {
+        auth: authState,
+        login,
+        logout,
+    };
 }
 
-
-
-// web/src/composables/useAuth.js
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { auth } from "@/firebase";
-
-const provider = new GoogleAuthProvider();
-
-export const loginWithGoogle = async () => {
-    const result = await signInWithPopup(auth, provider);
+/* ===============================
+   Firebase Google 로그인
+================================ */
+export async function loginWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(firebaseAuth, provider);
     return result.user;
-};
+}
 
-export const logout = async () => {
-    await signOut(auth);
-};
+export async function logoutFromGoogle() {
+    await signOut(firebaseAuth);
+}

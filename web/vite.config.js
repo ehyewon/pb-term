@@ -13,7 +13,7 @@ export default defineConfig({
 
   // ⭐ GitHub Pages 배포용 base 경로
   // 레포지토리 이름으로 꼭 바꿔야 함
-  base: '/netflix/',
+  base: '/',
 
   resolve: {
     alias: {
