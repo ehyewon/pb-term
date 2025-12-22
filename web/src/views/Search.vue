@@ -78,6 +78,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import axios from "axios";
 import MovieCard from "@/components/MovieCard.vue";
 import { useAuth } from "@/composables/useAuth.js";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "@/firebase";
+import { getAuth } from "firebase/auth";
 
 /* ================= 상태 ================= */
 const keyword = ref("");
@@ -92,6 +95,7 @@ const page = ref(1);
 const loading = ref(false);
 const isSearchMode = ref(false);
 const showTop = ref(false);
+const firebaseAuth = getAuth();
 
 /* ================= 최근 검색 ================= */
 const { auth } = useAuth();
@@ -194,7 +198,7 @@ watch(keyword, async (val) => {
 });
 
 /* ================= 🔥 검색 버튼 / 엔터 ================= */
-function searchMovies() {
+async function searchMovies() {
   if (!keyword.value.trim()) return;
 
   page.value = 1;
@@ -202,8 +206,10 @@ function searchMovies() {
   isSearchMode.value = true;
 
   saveRecent(keyword.value);
-  loadSearch();
+  await saveSearchToFirestore(keyword.value);
+  await loadSearch();
 }
+
 
 /* ================= 최근 검색 ================= */
 function saveRecent(word) {
@@ -218,7 +224,27 @@ function saveRecent(word) {
   recentKeywords.value = list;
 }
 
-function clickRecent(word) {
+/* ================= 🔥 Firestore 검색어 저장 ================= */
+async function saveSearchToFirestore(word) {
+  const user = firebaseAuth.currentUser;
+
+  console.log("🔥 search save", user);
+
+  if (!user) return;
+
+  try {
+    await addDoc(collection(db, "searchHistory"), {
+      keyword: word,
+      userUid: user.uid,
+      createdAt: serverTimestamp(),
+    });
+    console.log("✅ Firestore 저장 성공");
+  } catch (e) {
+    console.error("❌ Firestore 저장 실패", e);
+  }
+}
+
+async function clickRecent(word) {
   keyword.value = word;
 
   page.value = 1;
@@ -226,7 +252,8 @@ function clickRecent(word) {
   isSearchMode.value = true;
 
   saveRecent(word);
-  loadSearch();
+  await saveSearchToFirestore(word);
+  await loadSearch();
 }
 
 /* ================= 필터 ================= */
