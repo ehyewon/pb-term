@@ -68,6 +68,8 @@ class HomePage extends StatelessWidget {
                 },
                 child: const Text("찜 목록 보기 ❤️"),
                 ),
+
+                const SizedBox(height: 12),
             ],
           ],
         ),
