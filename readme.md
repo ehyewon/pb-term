@@ -36,6 +36,19 @@ Web / Mobile에서 동일한 사용자 데이터 사용 가능
 
 🔓 로그아웃
 
-Firebase 및 Google 세션 로그아웃 지원
+--------------------------------------------
+## 🔥 Firebase 연동 코드
+/lib
+- firebase_options.dart  
+- auth_service.dart  
+- wishlist_service.dart  
 
+Firebase Authentication(Google 로그인)과  
+Firestore를 이용한 사용자 인증 및 데이터 CRUD 처리
+
+
+Firebase 및 Google 세션 로그아웃 지원
+---------------------------------------------
+나머지는 전부 mobile 코드 
 로그아웃 후 다시 로그인 가능
+
